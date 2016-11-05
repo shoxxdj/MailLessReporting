@@ -3,6 +3,12 @@ var app= express();
 var session = require('express-session');
 var compression = require('compression');
 var async = require('async');
+var sha256 = require('sha256');
+
+var jsDate=require("js-date");
+
+var sqlite3 = require('sqlite3');
+var db = new sqlite3.Database('database.sqlite');
 
 //Body Parser
 var bodyParser = require('body-parser');
@@ -17,44 +23,6 @@ app.use(session({
                 name: 'YetAnOtherBullshitManagementTool'
         }));
 
-//
-
-//CREATE TABLE users (
-//    id       INTEGER    PRIMARY KEY AUTOINCREMENT
-//                        UNIQUE
-//                        NOT NULL,
-//    pseudo   TEXT (50)  UNIQUE
-//                        NOT NULL,
-//    password TEXT (100) NOT NULL,
-//    mail     TEXT (200) UNIQUE
-//                        NOT NULL
-//);
-
-//CREATE TABLE dirlabs (
-//    id_user INTEGER,
-//    id_labo INTEGER
-//);
-
-//CREATE TABLE labo (
-//    id  INTEGER PRIMARY KEY AUTOINCREMENT,
-//    nom TEXT
-//);
-
-//CREATE TABLE membres_labo (
-//    id_user INTEGER,
-//    id_labo INTEGER
-//);
-
-
-
-
-//Database
-var sqlite3 = require("sqlite3");
-var db = new sqlite3.Database('database.sqlite');
-
-var sha256 = require('sha256');
-
-
 var isAuthenticated = function(req,res,next){
 	if(req.session.user)
 		return next();
@@ -67,6 +35,29 @@ var isNotAuthenticated = function(req,res,next){
 		return next();
 	else	
 		res.redirect('/logoff');
+}
+
+var isUserAllowedToAccessLabo = function(req,res,next){
+	laboId=parseInt(req.params.id);
+	db.get('select id_user from membres_labo where id_user=? and id_labo=?',req.session.user.id,laboId,function(err,row){
+		console.log(err);
+		console.log(row);
+		 if(row==='undefined' || typeof(row) == 'undefined'){
+		 	res.redirect('/');
+		 }
+		 else{
+		 	next();
+		 }
+	});
+}
+
+var isAllowedToRepport = function(req,res,next){
+	if(new Date().getDay()<3 ){/*|| new Date().getDay()>5*/
+		res.redirect('/rules');
+	}
+	else{
+		next();
+	}
 }
 
 var isDirlab = function(req,res,next){
@@ -84,6 +75,27 @@ var isDirlab = function(req,res,next){
 			}
 		});
 	}
+}
+
+function getWeekNumber() {
+    d = new Date();
+    d.setHours(0,0,0,0);
+    d.setDate(d.getDate() + 4 - (d.getDay()||7));
+    var yearStart = new Date(d.getFullYear(),0,1);
+    var weekNo = Math.ceil(( ( (d - yearStart) / 86400000) + 1)/7);
+    return weekNo;
+}
+
+var isDirlabOfLabo = function(req,res,next){
+	laboId = req.params.id;
+	db.get('select id_labo where id_user=? and id_labo=?',req.session.user.id,laboId,function(err,row){
+		if(row==='undefined' || typeof(row) == 'undefined'){
+			res.end('Not Allowed');
+		}
+		else{
+			next();
+		}
+	});
 }
 
 app.get('/',function(req,res){
@@ -122,7 +134,6 @@ app.post('/register',isNotAuthenticated,function(req,res){
 		});
 	}
 });
-
 app.get('/login',function(req,res){
 	res.render('login.ejs');
 });
@@ -140,42 +151,6 @@ app.post('/login',function(req,res){
 		}
 	});
 });
-
-
-
-app.get('/admin',function(req,res){
-	//interface management super admin
-	res.end('reservé remi / bastien');
-});
-
-app.post('/admin/add/labo',function(req,res){
-	//crée un labo et ajoute un ou plusieurs dirlabs
-	res.end('ok');
-});
-
-app.get('/dirlab',isAuthenticated,isDirlab,function(req,res){
-	result=[];
-	db.all('Select id_labo from dirlabs where id_user=?',req.session.user.id,function(err,row){
-		async.each(row,function(data,callback){
-			db.get('Select nom from labo where id=?',data.id_labo,function(e,r){
-				result.push({id:data.id_labo,nom:r.nom});
-				callback();
-			});
-		},function(){
-			res.end(JSON.stringify(result));
-		});
-	});
-});
-
-app.get('/dirlab/:labo',isAuthenticated,isDirlab,function(req,res){
-	
-});
-
-//app.get('/dirlab/:startup/:')
-
-//app.get('/admin/projects',function(req,res){
-
-//});
 app.get('/laboratoires',isAuthenticated,function(req,res){
 	result=[];
 	db.all('Select id_labo from membres_labo where id_user=?',req.session.user.id,function(err,row){
@@ -185,22 +160,52 @@ app.get('/laboratoires',isAuthenticated,function(req,res){
 				callback();
 			});
 		},function(){
-			res.end(JSON.stringify(result));
+			res.render('user/index.ejs',{datas:result});
 		});
 	});
 });
-
-app.get('/laboratoire/:id',isAuthenticated,function(req,res){
+app.get('/laboratoire/:id',isAuthenticated,isUserAllowedToAccessLabo,function(req,res){
 	laboId=parseInt(req.params.id);
-	db.get("select id_projet from membres_projet where id_user=? and id_labo=?",req.session.user.id,laboId,function(err,row){
-		res.end(JSON.stringify(row.id_projet));
+	db.get('Select nom from labo where id=?',laboId,function(err,row){
+		res.render('user/rapport.ejs',{nom:row.nom});
+	});
+});
+app.post('/laboratoire/:id',isAuthenticated,isAllowedToRepport,function(req,res){
+	rapport =  req.body.rapport;
+	laboId=parseInt(req.params.id);
+	date = jsDate.date("Y/m/d");
+
+	db.get('Select rapport from rapports where id_user=? and date=?',req.session.user.id,date,function(err,row){
+		if(row==='undefined' || typeof(row) == 'undefined'){
+			var insert = db.prepare('INSERT into rapports(date,id_user,id_labo,rapport) values (?,?,?,?)');
+			insert.run(date,req.session.user.id,laboId,rapport,function(e){
+				res.end('done');
+			});
+		}
+		else{
+			res.render('user/rules.ejs',{message:'Un rapport par semaine pas plus'});
+		}
 	});
 });
 
-app.post('/laboratoires/:id',isAuthenticated,function(req,res){
+app.get('/dirlab',isAuthenticated,isDirlab,function(req,res){
+	var result = [];
+	db.all("select id_labo from dirlabs where id_user=?",req.session.user.id,function(err,row){
+		async.each(row,function(data,callback){
+			db.get('Select nom from labo where id=?',data.id_labo,function(e,r){
+				result.push({id:data.id_labo,nom:r.nom});
+				callback();
+			});
+		},function(){
+			res.render('dirlab/index.ejs',{datas:result});
+		});
+	});
+})
 
+app.get('/dirlab/laboratoire/:id',isAuthenticated,isDirlab,isDirlabOfLabo,function(req,res){
+	laboId=req.params.id;
+	db.all('Select id_user from membres_labo where id_labo=?',)
 });
-
 
 // Run Server ! 
 var server= app.listen(3000,function(){
