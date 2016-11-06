@@ -1,1 +1,41 @@
-<h1>Home</h1>
+<% include static/head.ejs %>
+<div class="row">
+	<div class="col-md-4 col-md-offset-1">
+		<h4>Login</h4>
+		<form class="form-horizontal" method="post" action="/login">
+			<div class="form-group">
+				<label for="email">Email</label><input class="form-control"  type="email" id="email" name="mail"/>
+			</div>
+			<div class="form-group">
+				<label for="password">Password</label><input class="form-control"  type="password" name="password"/>
+			</div>
+			<div class="form-group">
+				<input type="submit" value="Login"/>
+			</div>
+		</form>
+	</div>
+
+	<div class="col-md-4 col-md-offset-2">
+		<h4>Register</h4>
+
+		<form class="form-horizontal" method="post" action="/register">
+			<div class="form-group">
+				<label for="pseudo">Pseudo</label><input class="form-control" id="pseudo" type="text" name="pseudo"/>
+			</div>
+			<div class="form-group">
+				<label for="email">Email</label><input class="form-control" id="email" type="email" name="mail"/>
+			</div>
+			<div class="form-group">
+				<label for="password">Password</label><input class="form-control" id="password" type="password" name="password"/>
+			</div>
+			<div class="form-group">
+				<label for="password1">Verif</label><input class="form-control" id="password1" type="password" name="password_verif"/>
+			</div>
+			<div class="form-group">
+				<input id="" type="submit" class="form-control" value="register !"/>
+			</div>
+		</form>
+	</div>
+
+</div>
+<% include static/foot.ejs %>

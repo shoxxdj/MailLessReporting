@@ -40,8 +40,6 @@ var isNotAuthenticated = function(req,res,next){
 var isUserAllowedToAccessLabo = function(req,res,next){
 	laboId=parseInt(req.params.id);
 	db.get('select id_user from membres_labo where id_user=? and id_labo=?',req.session.user.id,laboId,function(err,row){
-		console.log(err);
-		console.log(row);
 		 if(row==='undefined' || typeof(row) == 'undefined'){
 		 	res.redirect('/');
 		 }
@@ -52,12 +50,26 @@ var isUserAllowedToAccessLabo = function(req,res,next){
 }
 
 var isAllowedToRepport = function(req,res,next){
-	if(new Date().getDay()<3 ){/*|| new Date().getDay()>5*/
+	/*if(new Date().getDay()<3 ){/*|| new Date().getDay()>5
 		res.redirect('/rules');
 	}
 	else{
 		next();
-	}
+	}*/
+	next();
+}
+var hasAllreadyReport = function(req,res,next){
+	userId=req.session.user.id;
+	labId=parseInt(req.params.id);
+	date=getWeekNumber();
+	db.get('select rapport from rapports where id_user=? and id_labo=? and date=?',userId,labId,date,function(err,row){
+		if(row==='undefined' || typeof(row) == 'undefined'){
+			next();
+		}
+		else{
+			res.render('error.ejs',{message:"Vous avez déja posté un rapport pour cette semaine"});
+		}
+	});
 }
 
 var isDirlab = function(req,res,next){
@@ -77,6 +89,10 @@ var isDirlab = function(req,res,next){
 	}
 }
 
+var isAdmin = function(req,res,next){
+	return next();
+}
+
 function getWeekNumber() {
     d = new Date();
     d.setHours(0,0,0,0);
@@ -88,7 +104,7 @@ function getWeekNumber() {
 
 var isDirlabOfLabo = function(req,res,next){
 	laboId = req.params.id;
-	db.get('select id_labo where id_user=? and id_labo=?',req.session.user.id,laboId,function(err,row){
+	db.get('select id_labo from dirlabs where id_user=? and id_labo=?',req.session.user.id,laboId,function(err,row){
 		if(row==='undefined' || typeof(row) == 'undefined'){
 			res.end('Not Allowed');
 		}
@@ -151,11 +167,15 @@ app.post('/login',function(req,res){
 		}
 	});
 });
+app.get('/logoff',isAuthenticated,function(req,res){
+	req.session.user=false;
+	res.redirect('/');
+});
 app.get('/laboratoires',isAuthenticated,function(req,res){
 	result=[];
 	db.all('Select id_labo from membres_labo where id_user=?',req.session.user.id,function(err,row){
 		async.each(row,function(data,callback){
-			db.get('Select nom from labo where id=?',data.id_labo,function(e,r){
+			db.get('Select nom from labos where id=?',data.id_labo,function(e,r){
 				result.push({id:data.id_labo,nom:r.nom});
 				callback();
 			});
@@ -166,14 +186,14 @@ app.get('/laboratoires',isAuthenticated,function(req,res){
 });
 app.get('/laboratoire/:id',isAuthenticated,isUserAllowedToAccessLabo,function(req,res){
 	laboId=parseInt(req.params.id);
-	db.get('Select nom from labo where id=?',laboId,function(err,row){
+	db.get('Select nom from labos where id=?',laboId,function(err,row){
 		res.render('user/rapport.ejs',{nom:row.nom});
 	});
 });
 app.post('/laboratoire/:id',isAuthenticated,isAllowedToRepport,function(req,res){
 	rapport =  req.body.rapport;
 	laboId=parseInt(req.params.id);
-	date = jsDate.date("Y/m/d");
+	date = getWeekNumber();
 
 	db.get('Select rapport from rapports where id_user=? and date=?',req.session.user.id,date,function(err,row){
 		if(row==='undefined' || typeof(row) == 'undefined'){
@@ -187,12 +207,11 @@ app.post('/laboratoire/:id',isAuthenticated,isAllowedToRepport,function(req,res)
 		}
 	});
 });
-
 app.get('/dirlab',isAuthenticated,isDirlab,function(req,res){
 	var result = [];
 	db.all("select id_labo from dirlabs where id_user=?",req.session.user.id,function(err,row){
 		async.each(row,function(data,callback){
-			db.get('Select nom from labo where id=?',data.id_labo,function(e,r){
+			db.get('Select nom from labos where id=?',data.id_labo,function(e,r){
 				result.push({id:data.id_labo,nom:r.nom});
 				callback();
 			});
@@ -200,12 +219,72 @@ app.get('/dirlab',isAuthenticated,isDirlab,function(req,res){
 			res.render('dirlab/index.ejs',{datas:result});
 		});
 	});
-})
+});
+
+//Dirlab
+//
+// Voir la liste de ses étudiants
+// Possiblité de voir les rapports des semaines précédantes
 
 app.get('/dirlab/laboratoire/:id',isAuthenticated,isDirlab,isDirlabOfLabo,function(req,res){
 	laboId=req.params.id;
-	db.all('Select id_user from membres_labo where id_labo=?',)
+	date = getWeekNumber();
+	var result = [];
+	db.all('select id_user from membres_labo where id_labo=?',laboId,function(e,r){
+		if(r!=null){
+			async.each(r,function(userId,callback){
+				db.get('Select mail from users where id=?',userId.id_user,function(f,g){
+					db.get('select rapport from rapports where id_user=? and id_labo=? and date=?',userId.id_user,laboId,date,function(h,i){
+						if(i==='undefined' || typeof(i) == 'undefined'){
+							callback();
+						}
+						else{
+							result.push({id_user:r.id_user,mail_user:g.mail,rapport:i.rapport});
+							callback();
+						}
+					});
+				})
+			},function(){
+				res.render('dirlab/rapports.ejs',{datas:result});
+			});
+		}
+		else{
+			res.end('0 rapports');
+		}
+	});
 });
+
+app.get('/admin',isAuthenticated,isAdmin,function(req,res){
+	res.render('admin/index.ejs');
+});
+
+app.post('/admin/newlab',isAuthenticated,isAdmin,function(req,res){
+	var lab = req.body.nom;
+	var insert = db.prepare('INSERT into labos (nom) VALUES (?)');
+	insert.run(lab);
+	res.end('ok');
+});
+
+app.post('/admin/newdirlab',isAuthenticated,isAdmin,function(req,res){
+	var labId= req.body.laboratoire_id;
+	var userId = req.body.user_id;
+
+	var insert = db.prepare('INSERT into dirlabs (id_user,id_labo) VALUES (?,?)');
+	insert.run(userId,labId);
+	res.end('ok');
+});
+
+app.post('/admin/usertolab',isAuthenticated,isAdmin,function(req,res){
+	var labId= req.body.laboratoire_id;
+	var userId = req.body.user_id;
+
+	var insert = db.prepare('INSERT into dirlabs (id_user,id_labo) VALUES (?,?)');
+	insert.run(userId,labId);
+	res.end('ok'); 
+});
+
+
+
 
 // Run Server ! 
 var server= app.listen(3000,function(){
