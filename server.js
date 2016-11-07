@@ -255,7 +255,15 @@ app.get('/dirlab/laboratoire/:id',isAuthenticated,isDirlab,isDirlabOfLabo,functi
 });
 
 app.get('/admin',isAuthenticated,isAdmin,function(req,res){
-	res.render('admin/index.ejs');
+	var result=[];
+	db.all('select id,mail from users',function(err,row){
+		async.each(row,function(user,callback){
+			result.push({id:user.id,mail:user.mail});
+			callback();
+		},function(){
+			res.render('admin/index.ejs',{users:result});
+		});
+	});
 });
 
 app.post('/admin/newlab',isAuthenticated,isAdmin,function(req,res){
