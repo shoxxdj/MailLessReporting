@@ -255,13 +255,21 @@ app.get('/dirlab/laboratoire/:id',isAuthenticated,isDirlab,isDirlabOfLabo,functi
 });
 
 app.get('/admin',isAuthenticated,isAdmin,function(req,res){
-	var result=[];
+	var users=[];
+	var labos=[];
 	db.all('select id,mail from users',function(err,row){
 		async.each(row,function(user,callback){
-			result.push({id:user.id,mail:user.mail});
+			users.push({id:user.id,mail:user.mail});
 			callback();
 		},function(){
-			res.render('admin/index.ejs',{users:result});
+			db.all('select id,nom from labos',function(err,row){
+				async.each(row,function(labo,c){
+					labos.push({id:labo.id,nom:labo.nom});
+					c();
+				},function(){
+					res.render('admin/index.ejs',{users:users,labos:labos});
+				});
+			});
 		});
 	});
 });

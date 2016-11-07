@@ -3,7 +3,7 @@
 
 	<div class="col-md-4">
 		<h3>Créer un laboratoire</h3>
-		<form>
+		<form method="post" action="/admin/newlab">
 			<input type="text" name="nom"/>
 			<input type="submit" value="Ajouter"/>
 		</form>
@@ -11,18 +11,34 @@
 
 	<div class="col-md-4">
 		<h3>Associer un Dirlab</h3>
-		<form>
-			<input type="number" placeholder="Id User" name="user_id"/>
-			<input type="number" placeholder="Id Labo" name="laboratoire_id"/>
+		<form class="form-horizontal"  method="post" action="/admin/newdirlab">
+			<select placeholder="Utilisateur" class="form-control" name="user_id">
+			<% users.forEach(function(user){ %>
+				<option value="<%= user.id %>"><%= user.mail %></option>
+			<% }); %>
+			</select>
+			<select placeholder="Labo" class="form-control" name="laboratoire_id">
+			<% labos.forEach(function(labo){%>
+				<option value="<%= labo.id %>"><%= labo.nom %></option>
+			<% }); %>				
+			</select>
 			<input type="submit" value="Ajouter"/>
 		</form>
 	</div>
 
 	<div class="col-md-4">
 		<h3>Associer un utilisateur à un lab</h3>
-		<form>
-			<input type="number" name="user_id"/>
-			<input type="number" name="laboratoire_id"/>
+		<form method="post" class="form-horizontal" action="/admin/usertolab">
+			<select placeholder="Utilisateur" class="form-control" name="user_id">
+			<% users.forEach(function(user){ %>
+				<option value="<%= user.id %>"><%= user.mail %></option>
+			<% }); %>
+			</select>
+			<select placeholder="Labo" class="form-control" name="laboratoire_id">
+			<% labos.forEach(function(labo){%>
+				<option value="<%= labo.id %>"><%= labo.nom %></option>
+			<% }); %>				
+			</select>
 			<input type="submit" value="Ajouter"/>
 		</form>
 	</div>
