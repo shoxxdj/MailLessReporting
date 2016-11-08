@@ -127,7 +127,7 @@ app.get('/',function(req,res){
 		res.render('home.ejs');
 	}
 	else{
-		res.redirect('/laboratoires');
+		res.render('choix.ejs');
 	}
 });
 /*app.get('/register',function(req,res){
