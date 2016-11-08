@@ -244,6 +244,7 @@ app.get('/dirlab/laboratoire/:id',isAuthenticated,isDirlab,isDirlabOfLabo,functi
 	laboId=req.params.id;
 	date = getWeekNumber();
 	var result = [];
+	var users = [];
 	db.all('select id_user from membres_labo where id_labo=?',laboId,function(e,r){
 		if(r!=null){
 			async.each(r,function(userId,callback){
@@ -259,11 +260,34 @@ app.get('/dirlab/laboratoire/:id',isAuthenticated,isDirlab,isDirlabOfLabo,functi
 					});
 				})
 			},function(){
-				res.render('dirlab/rapports.ejs',{datas:result,semaine:date});
+				db.all('select id,mail from users',function(err,row){
+					async.each(row,function(user,c){
+						users.push({id:user.id,mail:user.mail});
+						c();
+					},function(){
+						res.render('dirlab/rapports.ejs',{datas:result,semaine:date,users:users,id:laboId});
+					});
+				});
 			});
 		}
 		else{
 			res.end('0 rapports');
+		}
+	});
+});
+
+app.post('/dirlab/usertolab/:id',isAuthenticated,isDirlab,isDirlabOfLabo,function(req,res){
+	var labId= parseInt(req.params.id);
+	var userId = parseInt(req.body.user_id);
+
+	db.get('select id_user from membres_labo where id_user=? and id_labo=?',labId,userId,function(err,row){
+		if(row==='undefined' || typeof(row) == 'undefined'){
+			var insert = db.prepare('INSERT into membres_labo (id_user,id_labo) VALUES (?,?)');
+			insert.run(userId,labId);
+			res.end('ok'); 
+		}
+		else{
+			res.end("L'utilisateur est déja dans votre labo !");
 		}
 	});
 });
@@ -308,10 +332,19 @@ app.post('/admin/usertolab',isAuthenticated,isAdmin,function(req,res){
 	var labId= req.body.laboratoire_id;
 	var userId = req.body.user_id;
 
-	var insert = db.prepare('INSERT into dirlabs (id_user,id_labo) VALUES (?,?)');
-	insert.run(userId,labId);
-	res.end('ok'); 
+	db.get('select id_user from membres_labo where id_user=? and id_labo=?',labId,userId,function(err,row){
+		if(row==='undefined' || typeof(row) == 'undefined'){
+			var insert = db.prepare('INSERT into membres_labo (id_user,id_labo) VALUES (?,?)');
+			insert.run(userId,labId);
+			res.end('ok'); 
+		}
+		else{
+			res.end("L'utilisateur est déja dans ce labo !");
+		}
+	});
 });
+
+
 
 /*var server_port = process.env.OPENSHIFT_NODEJS_PORT || 8080
 var server_ip_address = process.env.OPENSHIFT_NODEJS_IP || '127.0.0.1'
