@@ -51,12 +51,12 @@ var isUserAllowedToAccessLabo = function(req,res,next){
 }
 
 var isAllowedToRepport = function(req,res,next){
-	if(new Date().getDay()<3 || new Date().getDay()>5){
+	/*if(new Date().getDay()<3 || new Date().getDay()>5){
 		res.redirect('/rules');
 	}
 	else{
 		next();
-	}
+	}*/
 	next();
 }
 var hasAllreadyReport = function(req,res,next){
