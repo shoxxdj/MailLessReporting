@@ -9,8 +9,8 @@ var jsDate=require("js-date");
 
 var sqlite3 = require('sqlite3');
 var db = new sqlite3.Database('database.sqlite');
-var helmet = require('helmet')
-app.use(helmet())
+//var helmet = require('helmet')
+//app.use(helmet())
 //Body Parser
 var bodyParser = require('body-parser');
 app.use( bodyParser.json() );       // to support JSON-encoded bodies
