@@ -122,7 +122,7 @@ app.get('/',function(req,res){
 		res.redirect('/laboratoires');
 	}
 });
-app.get('/register',function(req,res){
+/*app.get('/register',function(req,res){
 	res.render('register.ejs');
 });
 app.post('/register',isNotAuthenticated,function(req,res){
@@ -150,6 +150,7 @@ app.post('/register',isNotAuthenticated,function(req,res){
 		});
 	}
 });
+*/
 app.get('/login',function(req,res){
 	res.render('login.ejs');
 });
@@ -175,7 +176,6 @@ app.get('/logoff',isAuthenticated,function(req,res){
 app.get('/rules',function(req,res){
 	res.render('rules.ejs');
 });
-
 
 app.get('/laboratoires',isAllowedToRepport,isAuthenticated,function(req,res){
 	result=[];
