@@ -23,9 +23,11 @@
 		<h3>Associer un utilisateur au lab</h3>
 		<form method="post" class="form-horizontal" action="/dirlab/usertolab/<%= id %>">
 			<select placeholder="Utilisateur" class="form-control" name="user_id">
+			 <!--email_off-->
 			<% users.forEach(function(user){ %>
 				<option value="<%= user.id %>"><%= user.mail %></option>
 			<% }); %>
+			<!--/email_off-->
 			</select>
 			<input type="submit" value="Ajouter"/>
 		</form>
