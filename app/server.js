@@ -217,7 +217,7 @@ app.post('/laboratoire/:id',isAuthenticated,isAllowedToRepport,function(req,res)
 			});
 		}
 		else{
-			res.render('user/rules.ejs',{message:'Un rapport par semaine pas plus'});
+			res.render('rules.ejs');
 		}
 	});
 });
