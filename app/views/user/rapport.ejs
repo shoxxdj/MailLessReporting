@@ -1,0 +1,17 @@
+<% include ../static/head.ejs %>
+<div class="row">
+	<div class="col-md-6 col-md-offset-3">
+		<h1><%= nom %></h1>
+
+		<form class="form-horizontal" method="post" action>
+			<div class="form-group">
+				<textarea class="form-control" rows="18" cols="50" name="rapport"></textarea>
+			</div>
+			<div class="form-group">
+				<input class="btn btn-lg btn-block" type="submit" value="Envoyer mon rapport"/>
+			</div>
+		</form>
+	</div>
+</div>
+
+<% include ../static/foot.ejs %>

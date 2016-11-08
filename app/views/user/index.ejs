@@ -1,0 +1,11 @@
+<% include ../static/head.ejs %>
+	<h1>Mes Labos</h1>
+	<% datas.forEach(function(data){ %>
+	<div class='row'>
+		<div class="col-md-10 col-md-offset-1">
+			<h3><a href="/laboratoire/<%= data.id %>"><%= data.nom %></a></h3>
+		</div>
+	</div>
+	<% }); %>
+<% include ../static/foot.ejs %>
+

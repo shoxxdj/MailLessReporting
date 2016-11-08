@@ -1,0 +1,22 @@
+<% include ../static/head.ejs %>
+
+<div class="row">
+	<div class="col-md-10 col-md-offset-1">
+	<div class="row">
+	</div>
+	<% datas.forEach(function(data){ %>
+		<div class="row">
+			<div class="panel panel-default">
+				<div class="panel-heading">
+					<h3 class="panel-title"><%= data.mail_user %></h3>
+				</div>
+				<div class="panel-body">
+					<%= data.rapport %>
+				</div>
+			</div>
+		</div>
+	<% }); %>
+	</div>
+</div>
+
+<% include ../static/foot.ejs %>
