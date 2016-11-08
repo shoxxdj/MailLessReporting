@@ -9,7 +9,8 @@ var jsDate=require("js-date");
 
 var sqlite3 = require('sqlite3');
 var db = new sqlite3.Database('database.sqlite');
-
+var helmet = require('helmet')
+app.use(helmet())
 //Body Parser
 var bodyParser = require('body-parser');
 app.use( bodyParser.json() );       // to support JSON-encoded bodies
@@ -41,7 +42,7 @@ var isUserAllowedToAccessLabo = function(req,res,next){
 	laboId=parseInt(req.params.id);
 	db.get('select id_user from membres_labo where id_user=? and id_labo=?',req.session.user.id,laboId,function(err,row){
 		 if(row==='undefined' || typeof(row) == 'undefined'){
-		 	res.redirect('/');
+		 	res.redirect('/rules');
 		 }
 		 else{
 		 	next();
@@ -59,7 +60,7 @@ var isAllowedToRepport = function(req,res,next){
 	next();
 }
 var hasAllreadyReport = function(req,res,next){
-	userId=req.session.user.id;
+	userId=parseInt(req.session.user.id);
 	labId=parseInt(req.params.id);
 	date=getWeekNumber();
 	db.get('select rapport from rapports where id_user=? and id_labo=? and date=?',userId,labId,date,function(err,row){
@@ -67,7 +68,7 @@ var hasAllreadyReport = function(req,res,next){
 			next();
 		}
 		else{
-			res.render('error.ejs',{message:"Vous avez déja posté un rapport pour cette semaine"});
+			res.redirect('/rules');
 		}
 	});
 }
@@ -90,7 +91,14 @@ var isDirlab = function(req,res,next){
 }
 
 var isAdmin = function(req,res,next){
-	return next();
+	db.get("select id_user from admins where id_user=?",req.session.user.id,function(err,row){
+		if(row==="undefined" || typeof(row)=='undefined'){
+			res.redirect('/');
+		}
+		else{
+			next();
+		}
+	})
 }
 
 function getWeekNumber() {
@@ -103,10 +111,10 @@ function getWeekNumber() {
 }
 
 var isDirlabOfLabo = function(req,res,next){
-	laboId = req.params.id;
+	laboId = parseInt(req.params.id);
 	db.get('select id_labo from dirlabs where id_user=? and id_labo=?',req.session.user.id,laboId,function(err,row){
 		if(row==='undefined' || typeof(row) == 'undefined'){
-			res.end('Not Allowed');
+			res.end("Hmm Hmm T'est pas chez toi !");
 		}
 		else{
 			next();
@@ -158,12 +166,12 @@ app.post('/login',function(req,res){
 	var mail = req.body.mail;
 	var password = sha256(req.body.password);
 
-	db.get('Select id,pseudo,mail from users where mail=? and password=?',mail,password,function(err,row){
+	db.get('Select id,mail from users where mail=? and password=?',mail,password,function(err,row){
 		if(row==='undefined' || typeof(row) == 'undefined'){
 			res.end('STFU MOFO');
 		}
 		else{
-			req.session.user={id:row.id,pseudo:row.pseudo,mail:row.mail,isdirlab:false};
+			req.session.user={id:row.id,mail:row.mail,isdirlab:false};
 			res.redirect('/');
 		}
 	});
@@ -197,7 +205,7 @@ app.get('/laboratoire/:id',isAuthenticated,isUserAllowedToAccessLabo,function(re
 	});
 });
 app.post('/laboratoire/:id',isAuthenticated,isAllowedToRepport,function(req,res){
-	rapport =  req.body.rapport;
+	rapport = req.body.rapport;
 	laboId=parseInt(req.params.id);
 	date = getWeekNumber();
 
@@ -251,7 +259,7 @@ app.get('/dirlab/laboratoire/:id',isAuthenticated,isDirlab,isDirlabOfLabo,functi
 					});
 				})
 			},function(){
-				res.render('dirlab/rapports.ejs',{datas:result});
+				res.render('dirlab/rapports.ejs',{datas:result,semaine:date});
 			});
 		}
 		else{
